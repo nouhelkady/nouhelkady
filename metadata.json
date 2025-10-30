@@ -1,0 +1,5 @@
+{
+  "name": "Nouh ElKady — AI Imaging Suite",
+  "description": "An AI-powered imaging suite with three modules: a product realism generator that creates photorealistic scenes, a multi-angle image generator that preserves backgrounds, and a 2K image upscaler.",
+  "requestFramePermissions": []
+}
