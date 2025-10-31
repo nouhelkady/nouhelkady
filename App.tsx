@@ -67,6 +67,13 @@ const TikTokIcon: React.FC<{ className?: string }> = ({ className }) => (
     </svg>
 );
 
+const PatreonIcon: React.FC<{ className?: string }> = ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" className={className} viewBox="0 0 24 24" fill="currentColor">
+        <path d="M3 3h3v18H3z" />
+        <path d="M15 3a8 8 0 1 0 0 16a8 8 0 0 0 0-16z" />
+    </svg>
+);
+
 const AspectSquareIcon: React.FC<{ className?: string }> = ({ className }) => (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
@@ -718,10 +725,12 @@ const Footer: React.FC = () => {
     const instagramLink = "https://www.instagram.com/nouh_elkady/";
     const facebookLink = "https://www.facebook.com/nouhabdelmanamelkady";
     const tiktokLink = "https://www.tiktok.com/@nouhelkady";
+    const patreonLink = "https://patreon.com/NouhElKady?utm_medium=unknown&utm_source=join_link&utm_campaign=creatorshare_creator&utm_content=copyLink";
+
 
     return (
         <footer className="mt-12 text-center text-gray-400 border-t border-gray-700 pt-8 pb-4">
-            <div className="flex justify-center items-center space-x-8">
+            <div className="flex justify-center items-center space-x-6 sm:space-x-8">
                 <a href={whatsappLink} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp" className="text-[#25D366] transform hover:scale-110 transition-transform duration-300">
                     <WhatsAppIcon className="w-8 h-8" />
                 </a>
@@ -733,6 +742,9 @@ const Footer: React.FC = () => {
                 </a>
                 <a href={tiktokLink} target="_blank" rel="noopener noreferrer" aria-label="TikTok" className="text-white transform hover:scale-110 transition-transform duration-300">
                     <TikTokIcon className="w-8 h-8" />
+                </a>
+                 <a href={patreonLink} target="_blank" rel="noopener noreferrer" aria-label="Patreon" className="text-[#FF424D] transform hover:scale-110 transition-transform duration-300">
+                    <PatreonIcon className="w-7 h-7" />
                 </a>
             </div>
             <p className="mt-6 leading-relaxed">
