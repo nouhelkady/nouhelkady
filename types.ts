@@ -74,3 +74,34 @@ export const upscaleProcessingSteps = [
   "Upscaling to 2K resolution…",
   "Finalizing image..."
 ];
+
+// Module 4: Brand Designer
+export enum BrandingAsset {
+  BusinessCard = 'Business Card (Front & Back)',
+  Letterhead = 'Letterhead',
+  Envelope = 'Envelope',
+  Mug = 'Mug',
+  Tshirt = 'T-shirt',
+  USB = 'USB Flash Drive',
+  Pen = 'Pen',
+  IDBadge = 'ID Badge',
+  Folder = 'Folder',
+  Packaging = 'Product Box / Packaging'
+}
+
+export const brandingAssetsList = Object.values(BrandingAsset);
+
+export const brandingProcessingSteps = [
+  "Analyzing logo...",
+  "Generating Business Card...",
+  "Generating Letterhead...",
+  "Generating Envelope...",
+  "Generating Mug...",
+  "Generating T-shirt...",
+  "Generating USB Drive...",
+  "Generating Pen...",
+  "Generating ID Badge...",
+  "Generating Folder...",
+  "Generating Packaging...",
+  "Finalizing brand package..."
+];

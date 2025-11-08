@@ -218,6 +218,36 @@ export const upscaleImage = async (
     }
 };
 
+// =============================================
+// MODULE 4: ElKady Brand Designer
+// =============================================
+export const generateBrandingAsset = async (
+  logoBase64: string,
+  logoMimeType: string,
+  itemName: string
+): Promise<string> => {
+  try {
+    const prompt = `Analyze the uploaded logo to extract its main and accent colors, visual tone, and personality. Then, design a realistic ${itemName} as part of a cohesive brand identity. Include creative layout, balanced typography, realistic materials, shadows, and lighting. Respect the logo’s original proportions and integrate it naturally into the design. The result should look like a real professionally designed product mockup, photographed under soft studio lighting.`;
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash-image',
+      contents: {
+        parts: [
+          { inlineData: { data: logoBase64, mimeType: logoMimeType } },
+          { text: prompt },
+        ],
+      },
+      config: {
+        responseModalities: [Modality.IMAGE],
+      },
+    });
+    
+    return extractBase64FromResponse(response);
+  } catch (error) {
+    console.error(`Error generating ${itemName}:`, error);
+    throw new Error(`Failed to generate the ${itemName}. Please try again.`);
+  }
+};
 
 // =============================================
 // UTILITY

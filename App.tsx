@@ -1,9 +1,14 @@
 
+
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { generateAngleImage, fileToBase64, generateProductScene, upscaleImage, generateScenePrompt } from './services/geminiService';
+import { 
+    generateAngleImage, fileToBase64, generateProductScene, 
+    upscaleImage, generateScenePrompt, generateBrandingAsset 
+} from './services/geminiService';
 import { 
     GeneratedImage, Angle, multiAngleProcessingSteps, upscaleProcessingSteps,
-    SceneType, LightingStyle, CameraAngle, AspectRatio, DesignStyle
+    SceneType, LightingStyle, CameraAngle, AspectRatio, DesignStyle,
+    BrandingAsset, brandingAssetsList
 } from './types';
 
 // ===================================================================================
@@ -218,7 +223,12 @@ const ElKadyProducts: React.FC = () => {
             setPrompt(newPrompt);
 
         } catch (e) {
-            setError(e instanceof Error ? e.message : 'An unknown error occurred.');
+            // FIX: Gracefully handle errors from the API or file processing by checking if 'e' is an Error instance before accessing 'e.message'.
+            if (e instanceof Error) {
+                setError(e.message);
+            } else {
+                setError('An unknown error occurred.');
+            }
         } finally {
             clearInterval(interval);
             setAiPromptStatus('');
@@ -269,7 +279,12 @@ const ElKadyProducts: React.FC = () => {
 
         } catch (e) {
             if (statusInterval) clearInterval(statusInterval);
-            setError(e instanceof Error ? e.message : 'An unknown error occurred.');
+            // FIX: Gracefully handle errors from the API or file processing by checking if 'e' is an Error instance before accessing 'e.message'.
+            if (e instanceof Error) {
+                setError(e.message);
+            } else {
+                setError('An unknown error occurred.');
+            }
         } finally {
             setIsLoading(false);
             setProcessingStatus('');
@@ -534,7 +549,12 @@ const MultiAngleGenerator: React.FC = () => {
              setProcessingStatus(multiAngleProcessingSteps[5]);
              setGeneratedImages(newImages);
         } catch (e) {
-            setError(e instanceof Error ? e.message : 'An unknown error occurred.');
+            // FIX: Gracefully handle errors from the API or file processing by checking if 'e' is an Error instance before accessing 'e.message'.
+            if (e instanceof Error) {
+                setError(e.message);
+            } else {
+                setError('An unknown error occurred.');
+            }
         } finally {
             setIsLoading(false);
             setProcessingStatus('');
@@ -661,7 +681,12 @@ const ElKadyUpscale: React.FC = () => {
                 filename: "upscaled_2k_image.png"
             });
         } catch(e) {
-            setError(e instanceof Error ? e.message : 'An unknown error occurred.');
+            // FIX: Gracefully handle errors from the API or file processing by checking if 'e' is an Error instance before accessing 'e.message'.
+            if (e instanceof Error) {
+                setError(e.message);
+            } else {
+                setError('An unknown error occurred.');
+            }
         } finally {
             setIsLoading(false);
             setProcessingStatus('');
@@ -720,6 +745,205 @@ const ElKadyUpscale: React.FC = () => {
     );
 };
 
+// ===================================================================================
+// MODULE 4: ElKady Brand Designer
+// ===================================================================================
+const ElKadyBrandDesigner: React.FC = () => {
+    const [logoImage, setLogoImage] = useState<{file: File, preview: string} | null>(null);
+    const [generatedItems, setGeneratedItems] = useState<GeneratedImage[]>([]);
+    const [isLoading, setIsLoading] = useState(false);
+    const [processingStatus, setProcessingStatus] = useState('');
+    const [error, setError] = useState<string | null>(null);
+    const [modalImage, setModalImage] = useState<GeneratedImage | null>(null);
+    const [selectedAssets, setSelectedAssets] = useState<Set<BrandingAsset>>(() => new Set(brandingAssetsList));
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (file && file.type.startsWith('image/')) {
+            setError(null);
+            setGeneratedItems([]);
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setLogoImage({ file, preview: reader.result as string });
+            };
+            reader.readAsDataURL(file);
+        } else {
+            setError('Please select a valid logo image file (PNG, JPG, WEBP).');
+            setLogoImage(null);
+        }
+    };
+
+    const toggleAssetSelection = (asset: BrandingAsset) => {
+        setSelectedAssets(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(asset)) {
+                newSet.delete(asset);
+            } else {
+                newSet.add(asset);
+            }
+            return newSet;
+        });
+    };
+
+    const handleSelectAll = () => setSelectedAssets(new Set(brandingAssetsList));
+    const handleDeselectAll = () => setSelectedAssets(new Set());
+
+    const handleGenerate = async () => {
+        if (!logoImage) {
+            setError("Please upload your logo first.");
+            return;
+        }
+        if (selectedAssets.size === 0) {
+            setError("Please select at least one branding asset to generate.");
+            return;
+        }
+
+        setIsLoading(true);
+        setError(null);
+        setGeneratedItems([]);
+
+        try {
+            const { base64, mimeType } = await fileToBase64(logoImage.file);
+            const newItems: GeneratedImage[] = [];
+            const assetsToGenerate = Array.from(selectedAssets);
+            const totalAssets = assetsToGenerate.length;
+
+            for (let i = 0; i < totalAssets; i++) {
+                const assetName = assetsToGenerate[i];
+                setProcessingStatus(`Generating ${assetName} (${i + 1}/${totalAssets})...`);
+                
+                const generatedBase64 = await generateBrandingAsset(base64, mimeType, assetName);
+                
+                newItems.push({
+                    src: `data:image/png;base64,${generatedBase64}`,
+                    label: assetName,
+                    filename: `${assetName.toLowerCase().replace(/[\s/()&]/g, '_')}.png`
+                });
+                setGeneratedItems([...newItems]); // Update state iteratively to show results as they come
+            }
+
+        } catch (e) {
+            // FIX: Gracefully handle errors from the API or file processing by checking if 'e' is an Error instance before accessing 'e.message'. This addresses the reported TypeScript errors.
+            if (e instanceof Error) {
+                setError(e.message);
+            } else {
+                setError('An unknown error occurred during generation.');
+            }
+        } finally {
+            setIsLoading(false);
+            setProcessingStatus('');
+        }
+    };
+    
+    const handleDownloadAll = () => {
+        generatedItems.forEach(image => {
+            const link = document.createElement('a');
+            link.href = image.src;
+            link.download = image.filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        });
+    };
+
+    return (
+        <div className="bg-gray-800 rounded-xl shadow-2xl p-6 sm:p-8">
+            {isLoading && <ProcessingIndicator status={processingStatus} title="Building Your Brand Identity..." />}
+            <ImageModal image={modalImage} onClose={() => setModalImage(null)} />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+                {/* Left Column: Controls */}
+                <div className="flex flex-col space-y-6">
+                    <h2 className="text-xl font-semibold text-white border-b border-gray-700 pb-3">1. Upload Your Logo</h2>
+                    <div 
+                        className="relative border-2 border-dashed border-gray-600 rounded-lg p-6 text-center cursor-pointer hover:border-indigo-500 hover:bg-gray-700 transition-all duration-300"
+                        onClick={() => fileInputRef.current?.click()}
+                    >
+                        <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/png, image/jpeg, image/webp" />
+                        {logoImage?.preview ? (
+                            <img src={logoImage.preview} alt="Uploaded Logo" className="max-h-48 mx-auto" style={{ objectFit: 'contain' }} />
+                        ) : (
+                            <div className="flex flex-col items-center text-gray-400">
+                                <UploadIcon className="w-12 h-12 mb-2" />
+                                <p className="font-semibold">Click to upload logo</p>
+                                <p className="text-sm">PNG, JPG, or WEBP (transparent background recommended)</p>
+                            </div>
+                        )}
+                    </div>
+                    
+                    <h2 className="text-xl font-semibold text-white border-b border-gray-700 pb-3 pt-2">2. Select Assets to Generate</h2>
+                    <div className="flex justify-end gap-4 -mb-2">
+                        <button onClick={handleSelectAll} className="text-sm font-semibold text-indigo-300 hover:text-indigo-200 transition-colors">Select All</button>
+                        <button onClick={handleDeselectAll} className="text-sm font-semibold text-gray-400 hover:text-gray-300 transition-colors">Deselect All</button>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        {brandingAssetsList.map(asset => {
+                            const isSelected = selectedAssets.has(asset);
+                            return (
+                                <button
+                                    key={asset}
+                                    onClick={() => toggleAssetSelection(asset)}
+                                    className={`text-center py-3 px-2 rounded-lg border-2 transition-all duration-200 text-sm font-medium ${
+                                        isSelected
+                                            ? 'bg-indigo-600 border-indigo-400 text-white shadow-md'
+                                            : 'bg-gray-700 border-gray-600 text-gray-300 hover:border-indigo-500'
+                                    }`}
+                                >
+                                    {asset}
+                                </button>
+                            );
+                        })}
+                    </div>
+
+
+                    <h2 className="text-xl font-semibold text-white border-b border-gray-700 pb-3 pt-2">3. Generate Identity</h2>
+                    <button onClick={handleGenerate} disabled={!logoImage || isLoading || selectedAssets.size === 0} className="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-700 transition-colors disabled:bg-gray-600 disabled:cursor-not-allowed flex items-center justify-center text-lg gap-2">
+                        <SparklesIcon className="w-6 h-6" />
+                        {isLoading ? 'Generating...' : `Generate ${selectedAssets.size} Selected Item${selectedAssets.size === 1 ? '' : 's'}`}
+                    </button>
+                    {error && <p className="text-red-400 text-center">{error}</p>}
+                </div>
+
+                {/* Right Column: Preview */}
+                <div className="flex flex-col space-y-6">
+                    <h2 className="text-xl font-semibold text-white border-b border-gray-700 pb-3">ElKady Brand Identity Viewer</h2>
+                    {generatedItems.length > 0 ? (
+                        <div className="bg-gray-900/50 p-4 rounded-lg">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                                {generatedItems.map((item, index) => (
+                                    <div key={index} className="group relative rounded-lg overflow-hidden border-2 border-transparent hover:border-indigo-500 transition-all cursor-pointer" onClick={() => setModalImage(item)}>
+                                        <img 
+                                            src={item.src} 
+                                            alt={item.label} 
+                                            className="w-full aspect-square object-cover"
+                                        />
+                                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-2">
+                                             <p className="text-white text-center font-bold drop-shadow-lg">{item.label}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                             <div className="mt-6 flex flex-col sm:flex-row gap-4">
+                                <button onClick={handleDownloadAll} className="flex-1 bg-green-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2 text-center">
+                                    <DownloadIcon className="w-5 h-5" /> Download All ({generatedItems.length})
+                                </button>
+                                <button onClick={handleGenerate} className="flex-1 bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-gray-500 transition-colors flex items-center justify-center gap-2">
+                                    <RegenerateIcon className="w-5 h-5" /> Regenerate
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="flex items-center justify-center h-full min-h-[300px] border-2 border-dashed border-gray-700 rounded-lg text-gray-500">
+                            <p>Generated brand assets will appear here</p>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+
 const Footer: React.FC = () => {
     const whatsappLink = "https://wa.me/201140278609";
     const instagramLink = "https://www.instagram.com/nouh_elkady/";
@@ -763,12 +987,14 @@ const Footer: React.FC = () => {
 
 enum Module {
     Products = 'ElKady Products',
+    BrandDesigner = 'ElKady Brand Designer',
     MultiAngle = 'Same-Image Multi-Angle',
     Upscale = 'ElKady Upscale'
 }
 
 const moduleDescriptions: Record<Module, string> = {
     [Module.Products]: "Generate photo-realistic lifestyle or studio scenes for your product.",
+    [Module.BrandDesigner]: "Generate a complete, professional brand identity from just your logo.",
     [Module.MultiAngle]: "Generate top, bottom, and low-angle views while preserving the background.",
     [Module.Upscale]: "Enhance and upscale any image to 2K resolution while preserving details."
 }
@@ -779,6 +1005,7 @@ export default function App() {
     const renderModule = () => {
         switch (activeModule) {
             case Module.Products: return <ElKadyProducts />;
+            case Module.BrandDesigner: return <ElKadyBrandDesigner />;
             case Module.MultiAngle: return <MultiAngleGenerator />;
             case Module.Upscale: return <ElKadyUpscale />;
             default: return <ElKadyProducts />;
@@ -796,12 +1023,12 @@ export default function App() {
                 </header>
 
                 <nav className="flex justify-center mb-8 bg-gray-800 p-2 rounded-xl shadow-lg">
-                    <div className="flex space-x-2 bg-gray-900 p-1 rounded-lg">
+                    <div className="flex flex-wrap justify-center space-x-2 bg-gray-900 p-1 rounded-lg">
                         {Object.values(Module).map(module => (
                             <button
                                 key={module}
                                 onClick={() => setActiveModule(module)}
-                                className={`px-4 py-2 text-sm sm:text-base font-semibold rounded-md transition-colors duration-300 ${
+                                className={`px-4 py-2 text-sm sm:text-base font-semibold rounded-md transition-colors duration-300 my-1 ${
                                     activeModule === module 
                                         ? 'bg-indigo-600 text-white shadow-md' 
                                         : 'text-gray-300 hover:bg-gray-700'
